@@ -110,6 +110,23 @@ docker run --rm -p 5006:5006 \
   -e VIRES_TOKEN="<token>" gsl-dashboard
 ```
 
+### Behind a reverse proxy (sub-path)
+
+To deploy under a path prefix, set two env vars — the container then serves on
+`$PORT` and mounts the app under `$URL_PREFIX`:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e PORT=8000 \
+  -e URL_PREFIX=/experimental/geospacelab-dashboard \
+  gsl-dashboard
+# → http://localhost:8000/experimental/geospacelab-dashboard/
+```
+
+When `URL_PREFIX` is unset the app serves at the root, so the standalone command
+above is unchanged. `--allow-websocket-origin=*` and `--use-xheaders` (baked into
+the image) keep the websocket working through a TLS-terminating proxy.
+
 ## Architecture
 
 ```

@@ -42,4 +42,12 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 EXPOSE 5006
 ENTRYPOINT ["/app/deploy/entrypoint.sh"]
-CMD ["panel", "serve", "app.py", "--address", "0.0.0.0", "--port", "5006", "--allow-websocket-origin=*"]
+# Shell form so $PORT / $URL_PREFIX expand at runtime. --prefix is only added when
+# URL_PREFIX is set, so standalone `docker run -p 5006:5006` still serves at root.
+# --use-xheaders honours a TLS proxy's X-Forwarded-Proto/Host (correct wss URLs).
+CMD panel serve app.py \
+      --address 0.0.0.0 \
+      --port "${PORT:-5006}" \
+      ${URL_PREFIX:+--prefix "$URL_PREFIX"} \
+      --allow-websocket-origin='*' \
+      --use-xheaders
