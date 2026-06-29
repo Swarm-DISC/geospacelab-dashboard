@@ -3,6 +3,8 @@ name = "gsl-dashboard"
 version = "0.1.0"
 description = "A web dashboard that generates GeospaceLAB code via a GUI and renders quick plot previews."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "panel>=1.4",

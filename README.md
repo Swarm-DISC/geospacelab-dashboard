@@ -169,3 +169,8 @@ so upstream drift is caught.
 - Previews run one at a time (geospacelab/matplotlib hold global state) and the timeout is
   cosmetic (a runaway download keeps going in the background). Fine for single-user/local;
   revisit before multi-user hosting.
+
+## License
+
+[MIT](LICENSE). Note that geospacelab and the upstream data sources have their own licenses
+and data-use policies — review those before redistributing data or derivatives.
