@@ -1,0 +1,75 @@
+# Shipped bookmark presets (read-only). User-saved bookmarks live in data/user_bookmarks.yaml.
+# Each bookmark loads one or more datasets into the dashboard; multi-dataset bookmarks
+# populate the "added datasets" list for a combined multi-panel plot.
+- id: omni_storm
+  name: OMNI storm overview — St Patrick's 2015
+  description: Solar wind, IMF, AU/AL, SYM-H and Kp around the 2015-03-17 storm. No credentials.
+  dt_fr: 2015-03-17T00:00:00
+  dt_to: 2015-03-19T00:00:00
+  datasets:
+    - dataset_id: omni.combined
+      params: {omni_type: OMNI2, omni_res: "1min"}
+
+- id: indices_storm
+  name: Geomagnetic indices — combined (Kp + Dst + AE)
+  description: Kp/ap, Dst and AE/AU/AL stacked for the 2015-03-17 storm. No credentials.
+  dt_fr: 2015-03-17T00:00:00
+  dt_to: 2015-03-19T00:00:00
+  datasets:
+    - {dataset_id: indices.kpap, variables: [Kp, ap]}
+    - {dataset_id: indices.dst, variables: [Dst]}
+    - {dataset_id: indices.ae, variables: [AE, AU, AL]}
+
+- id: swarm_mag
+  name: Swarm-A magnetic field (MAG low-rate)
+  description: Swarm Alpha 1 Hz magnetometer B-field. Needs ESA-EO credentials.
+  dt_fr: 2016-01-02T00:00:00
+  dt_to: 2016-01-02T06:00:00
+  datasets:
+    - dataset_id: swarm.mag_lr
+      params: {sat_id: A, source: ESA EO, variant: OPER, quality_control: false}
+
+- id: swarm_lp
+  name: Swarm-A Langmuir Probe (Te, ne)
+  description: Swarm Alpha electron temperature and density (advanced LP). Needs ESA-EO credentials.
+  dt_fr: 2016-01-02T00:00:00
+  dt_to: 2016-01-02T06:00:00
+  datasets:
+    - dataset_id: swarm.efi_lp_hm
+      params: {sat_id: A, source: ESA EO, variant: OPER, quality_control: false}
+
+- id: swarm_idm
+  name: Swarm-A ion drift (EFI IDM)
+  description: Swarm Alpha cross-track ion drift and density. Needs ESA-EO credentials.
+  dt_fr: 2016-01-02T00:00:00
+  dt_to: 2016-01-02T06:00:00
+  datasets:
+    - dataset_id: swarm.efi_idm
+      params: {sat_id: A, source: ESA EO, variant: OPER, quality_control: false}
+
+- id: swarm_fac
+  name: Swarm-A field-aligned currents (FAC)
+  description: Swarm Alpha single-satellite FAC. Needs ESA-EO credentials.
+  dt_fr: 2016-01-02T00:00:00
+  dt_to: 2016-01-02T06:00:00
+  datasets:
+    - dataset_id: swarm.fac_tms
+      params: {sat_id: A, source: ESA EO, variant: OPER, quality_control: false}
+
+- id: swarm_aej
+  name: Swarm-A auroral electrojets (AEJ line profile)
+  description: Swarm Alpha auroral electrojet line-profile currents. Needs ESA-EO credentials.
+  dt_fr: 2016-01-02T00:00:00
+  dt_to: 2016-01-02T12:00:00
+  datasets:
+    - dataset_id: swarm.aej_lpl
+      params: {sat_id: A, source: ESA EO, variant: OPER, quality_control: false}
+
+- id: eiscat_tromso
+  name: EISCAT Tromsø UHF quicklook
+  description: EISCAT UHF ionospheric quicklook (Ne, Te, Ti, Vi). Needs Madrigal credentials.
+  dt_fr: 2016-12-25T10:00:00
+  dt_to: 2016-12-25T14:00:00
+  datasets:
+    - dataset_id: eiscat.isr
+      params: {site: TRO, antenna: UHF, data_file_type: madrigal-hdf5, load_mode: AUTO}

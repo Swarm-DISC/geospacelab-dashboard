@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtualenv / uv (project-local because the sandbox cache dirs are read-only)
+.venv/
+venv/
+.uv-cache/
+.uv-python/
+.mplcache/
+
+# Environment / secrets
+.env
+.env.local
+
+# Runtime-writable data + logs
+data/user_bookmarks.yaml
+*.log
+logging.log
+
+# Local reference clone of geospacelab (created for docs lookup, not part of this repo)
+geospacelab-ref/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

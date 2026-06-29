@@ -1,0 +1,44 @@
+[project]
+name = "gsl-dashboard"
+version = "0.1.0"
+description = "A web dashboard that generates GeospaceLAB code via a GUI and renders quick plot previews."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "panel>=1.4",
+    "param>=2.0",
+    "geospacelab",
+    "cartopy",            # geospacelab imports its geomap module unconditionally
+    "viresclient",        # SWARM "VirES" source backend
+    "hapiclient",         # SWARM "HAPI" source backend
+    "matplotlib",
+    "pyyaml",
+    "python-dotenv",
+    "tomli-w",            # write config.toml in docker mode
+]
+
+[project.optional-dependencies]
+# Geographic / polar map *previews* (AMPERE, SuperDARN). cartopy is already core; this is
+# a placeholder for any future heavy map extras.
+geo = []
+# Apex / AACGM magnetic coordinates (needs a Fortran compiler at build time).
+apex = ["apexpy", "aacgmv2"]
+# Ground-based / satellite sources behind Madrigal.
+madrigal = ["madrigalweb"]
+# Extra data-format readers.
+io = ["cdflib", "netcdf4", "h5py"]
+dev = ["pytest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gsl_dashboard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "install: tests that require geospacelab to be importable (deselect with -m 'not install')",
+    "network: tests that hit the network",
+]

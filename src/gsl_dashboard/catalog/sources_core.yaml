@@ -1,0 +1,139 @@
+# Hand-curated, non-SWARM sources. (SWARM lives in sources_swarm.yaml, auto-generated.)
+# Verified against geospacelab 0.14.15: express classes, datasource_contents, variables.
+categories:
+  - name: Solar wind & indices
+    sources:
+      - name: OMNI
+        products:
+          - id: omni.combined
+            label: OMNI solar wind, IMF & indices (quicklook)
+            loader: express
+            credential: null
+            express_target: geospacelab.express.omni_dashboard:OMNIDashboard
+            max_span_hours: 2160
+            note: >-
+              No credentials needed. Docks CDAWeb OMNI + WDC AE/ASY-SYM + GFZ Kp and
+              plots IMF, solar wind, AU/AL, SYM-H and Kp via .quicklook().
+            params:
+              - {name: omni_type, widget: select, options: [OMNI2, OMNI1], default: OMNI2, label: OMNI type}
+              - {name: omni_res, widget: select, options: ["1min", "5min", "1hour"], default: "1min", label: Resolution}
+
+      - name: Geomagnetic indices
+        products:
+          - id: indices.kpap
+            label: Kp / ap / Ap (GFZ)
+            loader: datahub
+            credential: null
+            datasource_contents: [gfz, kpap]
+            max_span_hours: 8760
+            variables: [Kp, ap, Ap]
+            default_layout: [[Kp], [ap]]
+          - id: indices.dst
+            label: Dst (WDC)
+            loader: datahub
+            credential: null
+            datasource_contents: [wdc, dst]
+            max_span_hours: 8760
+            variables: [Dst]
+            default_layout: [[Dst]]
+          - id: indices.ae
+            label: Auroral electrojet AE/AU/AL/AO (WDC)
+            loader: datahub
+            credential: null
+            datasource_contents: [wdc, ae]
+            max_span_hours: 8760
+            variables: [AE, AU, AL, AO]
+            default_layout: [[AE], [AU, AL]]
+          - id: indices.asysym
+            label: ASY/SYM (WDC)
+            loader: datahub
+            credential: null
+            datasource_contents: [wdc, asysym]
+            max_span_hours: 8760
+            variables: [SYM_H, SYM_D, ASY_H, ASY_D]
+            default_layout: [[SYM_H], [ASY_H]]
+
+  - name: Incoherent scatter radar
+    sources:
+      - name: EISCAT
+        products:
+          - id: eiscat.isr
+            label: EISCAT ISR quicklook (Ne, Te, Ti, Vi)
+            loader: express
+            credential: madrigal
+            express_target: geospacelab.express.eiscat_dashboard:EISCATDashboard
+            max_span_hours: 36
+            note: Needs Madrigal credentials in ~/.geospacelab/config.toml ([datahub.madrigal]).
+            params:
+              - {name: site, widget: select, options: [TRO, KIR, SOD, ESR], default: TRO, label: Site}
+              - {name: antenna, widget: select, options: [UHF, VHF, "42m", "32m"], default: UHF, label: Antenna}
+              - {name: data_file_type, widget: select, options: ["madrigal-hdf5", "eiscat-hdf5"], default: "madrigal-hdf5", label: File type}
+              - {name: modulation, widget: text, default: "", label: Modulation (optional)}
+              - {name: load_mode, widget: select, options: [AUTO], default: AUTO}
+
+      - name: Millstone Hill
+        products:
+          - id: millstonehill.isr
+            label: Millstone Hill ISR quicklook
+            loader: express
+            credential: madrigal
+            express_target: geospacelab.express.millstonehill_dashboard:MillstoneHillISRDashboard
+            max_span_hours: 48
+            note: Needs Madrigal credentials in ~/.geospacelab/config.toml ([datahub.madrigal]).
+            params:
+              - {name: antenna, widget: select, options: [zenith, misa], default: zenith, label: Antenna}
+              - {name: pulse_code, widget: select, options: ["single pulse", "alternating code"], default: "single pulse", label: Pulse code}
+              - {name: data_file_type, widget: select, options: [combined], default: combined, label: File type}
+
+  - name: DMSP
+    sources:
+      - name: DMSP
+        products:
+          - id: dmsp.ts
+            label: DMSP in-situ time series quicklook
+            loader: express
+            credential: madrigal
+            express_target: geospacelab.express.dmsp_dashboard:DMSPTSDashboard
+            max_span_hours: 24
+            note: Needs Madrigal credentials in ~/.geospacelab/config.toml ([datahub.madrigal]).
+            params:
+              - {name: sat_id, widget: select, options: [F16, F17, F18], default: F16, label: Satellite}
+          - id: dmsp.ssusi
+            label: DMSP SSUSI auroral imagery (map)
+            loader: geomap
+            credential: null
+            datasource_contents: [cdaweb, dmsp, ssusi]
+            needs_cartopy: true
+            max_span_hours: 24
+            note: >-
+              Auroral image product. Code is generated; live preview is deferred
+              (needs the [geo] extra / cartopy and map rendering).
+            params:
+              - {name: sat_id, widget: select, options: [F16, F17, F18, F19], default: F16, label: Satellite}
+
+  - name: Maps (manual download)
+    sources:
+      - name: AMPERE
+        products:
+          - id: ampere.fitted
+            label: AMPERE field-aligned currents (fitted)
+            loader: geomap
+            credential: null
+            datasource_contents: [jhuapl, ampere, fitted]
+            needs_cartopy: true
+            max_span_hours: 24
+            note: >-
+              Not an express dashboard. Requires a manually downloaded AMPERE file and
+              cartopy. Code is generated as a scaffold; live preview is deferred.
+      - name: SuperDARN
+        products:
+          - id: superdarn.potmap
+            label: SuperDARN convection potential map
+            loader: geomap
+            credential: null
+            datasource_contents: [superdarn, potmap]
+            needs_cartopy: true
+            max_span_hours: 24
+            note: >-
+              Not an express dashboard. Requires manually downloaded SuperDARN map data
+              and cartopy. Code is generated as a scaffold; live preview is deferred.
