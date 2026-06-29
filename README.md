@@ -86,14 +86,29 @@ to your `esa_eo` username.
 ## Docker mode
 
 ```bash
-docker build -f deploy/Dockerfile -t gsl-dashboard .
-docker run -p 5006:5006 -e DASHBOARD_MODE=docker gsl-dashboard
+# build and run in one go (run from the project root):
+docker build -t gsl-dashboard -f deploy/Dockerfile . && \
+docker run --rm -p 5006:5006 gsl-dashboard
+# → http://localhost:5006/app
 ```
 
-`DASHBOARD_MODE=docker` makes the app **(a)** point geospacelab's data root at a throwaway
-temp directory and **(b)** disable live previews for any credential-gated source (the code
-is still generated). `deploy/entrypoint.sh` injects credentials from env vars if you want
-to re-enable specific sources.
+The image **installs from `uv.lock`** (`uv sync --locked`) for reproducible builds, and
+**skips `aacgmv2` and `apexpy`** (`--no-install-package`): neither ships a wheel, so they'd
+need a C/Fortran compiler the slim image doesn't carry. geospacelab imports them lazily and
+the app degrades gracefully — the AACGM/APEX coordinate toggles just show an "install it"
+message. So **no compiler is needed and the build stays lean.** (Re-run `uv lock` after
+changing dependencies, or the `--locked` build will fail by design.)
+
+`DASHBOARD_MODE=docker` (baked into the image) makes the app **(a)** point geospacelab's
+data root at a throwaway temp directory and **(b)** disable live previews for any
+credential-gated source (the code is still generated). To re-enable specific sources, pass
+credentials as env vars — `deploy/entrypoint.sh` writes them into the container's config:
+
+```bash
+docker run --rm -p 5006:5006 \
+  -e ESA_EO_USERNAME="you@example.com" -e GSL_WDC_EMAIL="you@example.com" \
+  -e VIRES_TOKEN="<token>" gsl-dashboard
+```
 
 ## Architecture
 
