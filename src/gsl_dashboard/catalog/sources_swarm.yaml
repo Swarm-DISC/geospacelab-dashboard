@@ -303,11 +303,11 @@ categories:
               - [T_n_MSIS]
       - name: Magnetic field (MAG)
         products:
-          - id: swarm.mag_hr
-            label: MAG high-rate 50 Hz B-field (L1b)
+          - id: swarm.mag_lr
+            label: MAG low-rate 1 Hz B-field (L1b)
             loader: datahub
             credential: esa_eo
-            datasource_contents: [esa_eo, swarm, l1b, mag_hr]
+            datasource_contents: [esa_eo, swarm, l1b, mag_lr]
             max_span_hours: 24
             param_profile: swarm
             variables:
@@ -344,11 +344,11 @@ categories:
               - [B_N]
               - [B_E]
               - [B_C]
-          - id: swarm.mag_lr
-            label: MAG low-rate 1 Hz B-field (L1b)
+          - id: swarm.mag_hr
+            label: MAG high-rate 50 Hz B-field (L1b)
             loader: datahub
             credential: esa_eo
-            datasource_contents: [esa_eo, swarm, l1b, mag_lr]
+            datasource_contents: [esa_eo, swarm, l1b, mag_hr]
             max_span_hours: 24
             param_profile: swarm
             variables:
@@ -1041,30 +1041,24 @@ categories:
             max_span_hours: 24
             param_profile: swarm
             variables:
-              - DATETIME
+              - DATETIME_0
               - GEO_LAT
               - GEO_LON
-              - GEO_ALT
-              - SZA
-              - QD_LAT
-              - QD_LON
-              - QD_MLT
-              - PRN
-              - L1
-              - L2
-              - P1
-              - P2
-              - S1
-              - S2
-              - STEC_ABS
-              - STEC_REL
-              - STEC_REL_err
-              - DCB
-              - DCB_err
-              - VTEC_ABS
-              - EL
+              - GEO_r
+              - LT
+              - Whistler_Dispersion
+              - Whistler_t0
+              - Whistler_t0_uncertainty
+              - Intensity
+              - DATETIME
+              - TimeFrac
+              - F_analysed
+              - FLAG
+              - DATETIME_PSD
+              - Frequencies_PSD
+              - PSD
             default_layout:
-              - [SZA]
-              - [PRN]
-              - [L1]
-              - [L2]
+              - [Whistler_Dispersion]
+              - [Whistler_t0]
+              - [Intensity]
+              - [F_analysed]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import panel as pn
 
+from ..catalog import disabled_source_backends
 from ..catalog.models import DATAHUB
 
 
@@ -23,7 +24,12 @@ def _widget_for(state, spec):
         return pn.widgets.Checkbox.from_param(p, name=label)
     if spec.widget == "text":
         return pn.widgets.TextInput.from_param(p, name=label)
-    return pn.widgets.Select.from_param(p, name=label)
+    w = pn.widgets.Select.from_param(p, name=label)
+    if spec.name == "source":
+        # Only MAG low-rate can fetch from VirES/HAPI in geospacelab; grey them out for
+        # every other product. (param_box rebuilds this widget on each product change.)
+        w.disabled_options = disabled_source_backends(state.product)
+    return w
 
 
 def param_box(state):
@@ -103,7 +109,8 @@ def run_controls(state):
         stop.disabled = not e.new
 
     state.param.watch(_on_running, "is_running")
-    return pn.Row(run, stop, sizing_mode="stretch_width")
+    # flex 0 0 auto keeps it a fixed-height bar between the code and output panes.
+    return pn.Row(run, stop, sizing_mode="stretch_width", styles={"flex": "0 0 auto"}, margin=(4, 6))
 
 
 def sidebar(state) -> pn.viewable.Viewable:
@@ -124,7 +131,5 @@ def sidebar(state) -> pn.viewable.Viewable:
         pn.pane.Markdown("### 4 · Combine (optional)"),
         add_button(state),
         datasets_box(state),
-        pn.layout.Divider(),
-        run_controls(state),
         sizing_mode="stretch_width",
     )

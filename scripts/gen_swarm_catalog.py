@@ -67,7 +67,19 @@ _SKIP_LAYOUT = re.compile(
 LAYOUT_OVERRIDES = {
     "mag_lr": ["F", "B_N", "B_E", "B_C"],
     "mag_hr": ["F", "B_N", "B_E", "B_C"],
+    "whi_evt": ["Whistler_Dispersion", "Whistler_t0", "Intensity", "F_analysed"],
 }
+
+# Preferred ordering within a source group (lower = earlier). The first product in a
+# group becomes the UI default, so surface MAG low-rate before high-rate. Products not
+# listed keep their alphabetical order (the sort is stable).
+PRODUCT_ORDER = {"swarm.mag_lr": 0, "swarm.mag_hr": 1}
+
+# Products whose upstream variable_config.py is a wrong copy of another product's, so
+# plottable_vars() would return the wrong variables. As of geospacelab 0.14.15, whi_evt
+# ships tec_tms's variable_config.py verbatim — derive its variables from the product's
+# own default_variable_names (in __init__.py) instead. Revisit when geospacelab fixes it.
+BROKEN_VARIABLE_CONFIG = {"whi_evt"}
 
 
 def _skip_for_layout(name: str) -> bool:
@@ -77,13 +89,16 @@ def _skip_for_layout(name: str) -> bool:
 def _literal_list_assign(tree, names) -> list[str]:
     found = {}
     for node in tree.body:
-        if isinstance(node, ast.Assign):
+        if isinstance(node, ast.Assign) and isinstance(node.value, (ast.List, ast.Set, ast.Tuple)):
             for t in node.targets:
                 if isinstance(t, ast.Name) and t.id in names:
-                    try:
-                        found[t.id] = [v for v in ast.literal_eval(node.value) if isinstance(v, str)]
-                    except Exception:
-                        pass
+                    # Read elements in source order. A set literal (e.g. whi_evt's
+                    # default_variable_names) is unordered at runtime, but its source order
+                    # is stable — keeps the generated YAML deterministic across runs.
+                    found[t.id] = [
+                        e.value for e in node.value.elts
+                        if isinstance(e, ast.Constant) and isinstance(e.value, str)
+                    ]
     for name in names:  # honour priority order
         if found.get(name):
             return found[name]
@@ -177,10 +192,12 @@ def plottable_vars(prod_dir: pathlib.Path) -> list[str]:
 
 def parse_var_names(prod_dir: pathlib.Path) -> list[str]:
     # Prefer the configured + styled (plottable) variables; fall back to the declared
-    # default names only if a product has no parseable variable_config.
-    plottable = plottable_vars(prod_dir)
-    if plottable:
-        return plottable
+    # default names only if a product has no parseable variable_config (or ships a wrong
+    # one — see BROKEN_VARIABLE_CONFIG).
+    if prod_dir.name not in BROKEN_VARIABLE_CONFIG:
+        plottable = plottable_vars(prod_dir)
+        if plottable:
+            return plottable
     init_path = prod_dir / "__init__.py"
     tree = ast.parse(init_path.read_text(errors="ignore"))
     names = _literal_list_assign(
@@ -214,6 +231,8 @@ def collect() -> dict[str, list[dict]]:
                 "variables": var_names,
                 "layout": layout,
             })
+    for prods in by_group.values():  # surface preferred products first (stable)
+        prods.sort(key=lambda p: PRODUCT_ORDER.get(p["id"], 50))
     return by_group
 
 

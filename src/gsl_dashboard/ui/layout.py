@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
 import panel as pn
 
 from .. import settings
@@ -73,16 +72,6 @@ def build_app() -> pn.template.FastListTemplate:
 
     state = RequestState()
 
-    # Close superseded figures to avoid leaking them across runs.
-    def _close_old(e):
-        if e.old is not None:
-            try:
-                plt.close(e.old)
-            except Exception:
-                pass
-
-    state.param.watch(_close_old, "preview_fig")
-
     # Top half: the generated code, always visible. Bottom half: Plot / Data / Console tabs.
     code_half = pn.Column(
         pn.pane.Markdown("##### Generated geospacelab code", margin=(2, 0, 0, 6)),
@@ -100,7 +89,8 @@ def build_app() -> pn.template.FastListTemplate:
         sizing_mode="stretch_both",
         styles={"flex": "1 1 0", "min-height": "0"},
     )
-    main_view = pn.Column(code_half, output_half, sizing_mode="stretch_both")
+    # Run controls sit between the generated code (top) and the output tabs (bottom).
+    main_view = pn.Column(code_half, widgets.run_controls(state), output_half, sizing_mode="stretch_both")
 
     # Left panel: two tabs — "Choose dataset" (the input directory) and "Bookmarks".
     sidebar_tabs = pn.Tabs(sizing_mode="stretch_width")

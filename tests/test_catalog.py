@@ -78,6 +78,38 @@ def test_mag_lr_layout_is_nec_components():
     assert layout == ["F", "B_N", "B_E", "B_C"]
 
 
+def test_mag_group_defaults_to_low_rate():
+    """The first product in a source group is the UI default; MAG should default to
+    low-rate (the common baseline), not high-rate."""
+    mag = CAT.products_for("Swarm", "Magnetic field (MAG)")
+    assert mag[0].id == "swarm.mag_lr"
+    assert {"swarm.mag_lr", "swarm.mag_hr"} <= {p.id for p in mag}
+
+
+def test_alt_source_backends_only_for_mag_lr():
+    """Only swarm.mag_lr supports VirES/HAPI in geospacelab; the UI greys them out
+    elsewhere via disabled_source_backends()."""
+    from gsl_dashboard.catalog import disabled_source_backends
+
+    assert disabled_source_backends("swarm.mag_lr") == []
+    assert disabled_source_backends("swarm.mag_hr") == ["VirES", "HAPI"]
+    assert disabled_source_backends("swarm.efi_lp") == ["VirES", "HAPI"]
+    assert disabled_source_backends(None) == ["VirES", "HAPI"]
+
+
+def test_whi_evt_has_whistler_variables_not_tec():
+    """geospacelab 0.14.15 ships tec_tms's variable_config.py for whi_evt, so the generator
+    must derive whi_evt's variables from its own default_variable_names instead (else the
+    catalog lists GPS/TEC variables). See BROKEN_VARIABLE_CONFIG in gen_swarm_catalog.py."""
+    whi = CAT.get("swarm.whi_evt")
+    assert {"Whistler_Dispersion", "Whistler_t0", "Intensity", "F_analysed"} <= set(whi.variables)
+    # No leakage of TEC/GPS variables from the wrong upstream config.
+    assert not ({"VTEC_ABS", "STEC_ABS", "PRN", "DCB", "EL"} & set(whi.variables))
+    assert [v for grp in whi.default_layout for v in grp] == [
+        "Whistler_Dispersion", "Whistler_t0", "Intensity", "F_analysed",
+    ]
+
+
 def test_secondary_time_grid_vars_excluded():
     """AEJ_LPL's RMS_MISFIT / CONFIDENCE live on a secondary time grid (UT_QUAL) and
     cannot be plotted in a UT panel ("dependence on UT is not set")."""

@@ -32,6 +32,20 @@ PARAM_PROFILES: dict[str, list[ParamSpec]] = {
 }
 
 
+# Source backends that need Swarm MAG low-rate. In geospacelab only swarm.mag_lr
+# implements VirES/HAPI loading — every other Swarm Dataset's _load_from_VirES /
+# _load_from_HAPI raises NotImplementedError — so the UI greys these out elsewhere.
+ALT_SOURCE_BACKENDS = ("VirES", "HAPI")
+PRODUCTS_WITH_ALT_SOURCE_BACKENDS = frozenset({"swarm.mag_lr"})
+
+
+def disabled_source_backends(product_id: str | None) -> list[str]:
+    """Source backends to grey out for a product (empty for the ones that support them)."""
+    if product_id in PRODUCTS_WITH_ALT_SOURCE_BACKENDS:
+        return []
+    return list(ALT_SOURCE_BACKENDS)
+
+
 def _param_from_dict(d: dict) -> ParamSpec:
     return ParamSpec(
         name=d["name"],

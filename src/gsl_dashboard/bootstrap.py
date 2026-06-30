@@ -56,6 +56,9 @@ def _seed_docker_config() -> str:
     config["datahub"]["data_root_dir"] = str(data_root)
     with open(_CONFIG_PATH, "wb") as f:
         tomli_w.dump(config, f)
+    # Export so preview-worker subprocesses inherit the SAME data root (downloads stay
+    # cached across previews instead of each worker minting a fresh temp dir).
+    os.environ["GEOSPACELAB_DATA_ROOT"] = str(data_root)
     return data_root
 
 

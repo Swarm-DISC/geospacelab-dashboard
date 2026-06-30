@@ -28,7 +28,7 @@ def code_pane(state) -> pn.widgets.CodeEditor:
 
 
 def plot_pane(state) -> pn.viewable.Viewable:
-    def _view(fig, running, error):
+    def _view(png, running, error):
         if running:
             return pn.Column(
                 pn.indicators.LoadingSpinner(value=True, size=40, name="Running…"),
@@ -36,22 +36,23 @@ def plot_pane(state) -> pn.viewable.Viewable:
             )
         if error:
             return pn.pane.Alert(f"**Preview unavailable.** {error}", alert_type="warning")
-        if fig is None:
+        if not png:
             return pn.pane.Markdown(_PLOT_PLACEHOLDER)
-        return pn.pane.Matplotlib(fig, dpi=96, tight=True, sizing_mode="stretch_both", min_height=420)
+        # PNG bytes rendered out-of-process (see state.run_preview / preview_worker).
+        return pn.pane.PNG(png, sizing_mode="stretch_both", min_height=420)
 
-    return pn.bind(_view, state.param.preview_fig, state.param.is_running, state.param.error_msg)
+    return pn.bind(_view, state.param.preview_png, state.param.is_running, state.param.error_msg)
 
 
 def data_pane(state) -> pn.viewable.Viewable:
-    def _view(data_repr, fig):
+    def _view(data_repr, png):
         if data_repr:
             return pn.pane.Markdown(data_repr, sizing_mode="stretch_width")
-        if fig is not None:
+        if png:
             return pn.pane.Markdown("_Preview rendered; no tabular summary available for this product._")
         return pn.pane.Markdown("_Run a preview to see a data summary._")
 
-    return pn.bind(_view, state.param.data_repr, state.param.preview_fig)
+    return pn.bind(_view, state.param.data_repr, state.param.preview_png)
 
 
 def console_pane(state) -> pn.viewable.Viewable:
