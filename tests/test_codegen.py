@@ -6,7 +6,7 @@ import datetime as dt
 import pytest
 
 from gsl_dashboard.catalog import get_catalog
-from gsl_dashboard.codegen import build_dock_kwargs, render_code
+from gsl_dashboard.codegen import build_dock_kwargs, figsize_for_panels, panel_count, render_code
 from gsl_dashboard.spec import RequestSpec, RunRequest
 
 CAT = get_catalog()
@@ -70,6 +70,28 @@ def test_multi_dataset_two_docks():
     ast.parse(code)
     assert code.count("db.dock(") == 2
     assert "[v_1_1_0, v_1_1_1]" in code  # AU, AL grouped together
+
+
+def test_figsize_scales_with_panel_count():
+    # ~2 in/panel, floored at the old 8-in height and capped so it never runs away.
+    assert figsize_for_panels(0) == (12, 8)
+    assert figsize_for_panels(4) == (12, 8)  # typical single Swarm dataset — unchanged
+    assert figsize_for_panels(8) == (12, 16)  # two datasets stop crowding
+    assert figsize_for_panels(100) == (12, 40)  # capped
+
+
+def test_multi_dataset_grows_figure_height():
+    # Two MAG datasets (4 panels each) → 8 panels → taller figure than a single dataset.
+    single = render_code(_req(RequestSpec("swarm.mag_lr", {"sat_id": "A", "source": "ESA EO"})), CAT)
+    assert "figure_config={'figsize': (12, 8)}" in single
+    two = _req(
+        RequestSpec("swarm.mag_lr", {"sat_id": "A", "source": "VirES"}),
+        RequestSpec("swarm.mag_lr", {"sat_id": "A", "source": "HAPI"}),
+    )
+    assert panel_count(two, CAT) == 8
+    code = render_code(two, CAT)
+    ast.parse(code)
+    assert "figure_config={'figsize': (12, 16)}" in code
 
 
 def test_geomap_scaffold():

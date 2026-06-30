@@ -29,9 +29,10 @@ def test_precheck_defers_geomap(monkeypatch):
     assert msg and "deferred" in msg.lower()
 
 
-def test_precheck_disables_credentialed_in_docker(monkeypatch):
+def test_precheck_disables_credentialed_in_docker_without_creds(monkeypatch):
+    # docker blocks a credential-gated source only when its credentials aren't configured.
     monkeypatch.setattr(settings, "MODE", "docker")
-    monkeypatch.setattr(runner, "credentials_present", lambda kind: True)
+    monkeypatch.setattr(runner, "credentials_present", lambda kind: False)
     msg = _precheck(_req("swarm.mag_lr"), CAT)
     assert msg and "disabled" in msg.lower()
 
@@ -46,6 +47,41 @@ def test_precheck_reports_missing_credentials(monkeypatch):
 def test_precheck_passes_for_no_cred_source(monkeypatch):
     monkeypatch.setattr(settings, "MODE", "local")
     assert _precheck(_req("indices.kpap"), CAT) is None
+
+
+def test_precheck_allows_hapi_swarm_in_docker(monkeypatch):
+    # HAPI is a public backend, so a Swarm-via-HAPI preview stays allowed in docker mode
+    # even though the product is cataloged as esa_eo.
+    monkeypatch.setattr(settings, "MODE", "docker")
+    assert _precheck(_req("swarm.mag_lr", params={"source": "HAPI"}), CAT) is None
+
+
+def test_precheck_hapi_swarm_needs_no_credentials(monkeypatch):
+    # In local mode a HAPI fetch needs no esa_eo credentials (only None-cred passes here).
+    monkeypatch.setattr(settings, "MODE", "local")
+    monkeypatch.setattr(runner, "credentials_present", lambda kind: kind is None)
+    assert _precheck(_req("swarm.mag_lr", params={"source": "HAPI"}), CAT) is None
+
+
+def test_precheck_allows_vires_swarm_in_docker_with_token(monkeypatch):
+    # entrypoint.sh seeds the VirES token, so VirES becomes previewable in docker.
+    monkeypatch.setattr(settings, "MODE", "docker")
+    monkeypatch.setattr(runner, "credentials_present", lambda kind: kind == "vires")
+    assert _precheck(_req("swarm.mag_lr", params={"source": "VirES"}), CAT) is None
+
+
+def test_precheck_blocks_vires_swarm_in_docker_without_token(monkeypatch):
+    monkeypatch.setattr(settings, "MODE", "docker")
+    monkeypatch.setattr(runner, "credentials_present", lambda kind: False)
+    msg = _precheck(_req("swarm.mag_lr", params={"source": "VirES"}), CAT)
+    assert msg and "disabled" in msg.lower()
+
+
+def test_precheck_vires_swarm_uses_vires_not_esa_eo(monkeypatch):
+    # VirES Swarm needs the VirES token, not the esa_eo login (local mode).
+    monkeypatch.setattr(settings, "MODE", "local")
+    monkeypatch.setattr(runner, "credentials_present", lambda kind: kind == "vires")
+    assert _precheck(_req("swarm.mag_lr", params={"source": "VirES"}), CAT) is None
 
 
 _APEX_SPEC = {"sat_id": "A", "source": "ESA EO", "variant": "OPER", "add_APEX": True}
@@ -95,6 +131,28 @@ def test_dispatch_multi_is_datahub(_mock_exec):
 def test_empty_request_errors(_mock_exec):
     res = build_and_render(RunRequest((), dt.datetime(2016, 1, 2), dt.datetime(2016, 1, 2, 1)), CAT)
     assert res.error
+
+
+def test_build_and_render_closes_stale_figures(monkeypatch):
+    # geospacelab reuses an open figure (ignoring our figsize); build_and_render must close
+    # leftovers so each run builds its own correctly sized figure.
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    monkeypatch.setattr(bootstrap, "prime_in_memory_config", lambda: None)
+    monkeypatch.setattr(runner, "credentials_present", lambda kind: True)
+    plt.figure()  # a stale figure left over from a previous preview
+    seen = {}
+
+    def _fake(req, cat):
+        seen["fignums"] = plt.get_fignums()
+        return RunResult(fig="OK")
+
+    monkeypatch.setattr(runner, "_run_datahub", _fake)
+    build_and_render(_req("indices.kpap"), CAT)
+    assert seen["fignums"] == []  # the stale figure was closed before the run started
 
 
 def test_log_capture(monkeypatch):

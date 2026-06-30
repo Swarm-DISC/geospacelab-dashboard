@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from .catalog.models import EXPRESS, GEOMAP, Product
+from .catalog.models import DATAHUB, EXPRESS, GEOMAP, Product
 from .catalog.registry import parse_target
 from .spec import RequestSpec, RunRequest
 
@@ -92,6 +92,34 @@ def _selected_or_default(product: Product, spec: RequestSpec) -> list[str]:
     return [v for grp in product.default_layout for v in grp]
 
 
+def panel_count(req: RunRequest, catalog) -> int:
+    """Number of stacked panels a datahub plot will draw for ``req``.
+
+    Mirrors what ``_render_datahub`` / ``runner._run_datahub`` build: one panel per
+    layout group, summed over the datahub datasets (express/geomap don't stack here).
+    """
+    n = 0
+    for spec in req.datasets:
+        product = catalog.get(spec.dataset_id)
+        if product.loader != DATAHUB:
+            continue
+        n += len(_layout_groups(product, _selected_or_default(product, spec)))
+    return n
+
+
+def figsize_for_panels(n_panels: int) -> tuple[int, int]:
+    """Figure size (inches) that keeps stacked panels legible.
+
+    geospacelab divides a fixed fraction of the figure height equally among the panels
+    (no auto-scaling), so a fixed height crams the tick labels once there are many
+    panels. Allow ~2 in per panel — the proven density of the old ``(12, 8)`` default at
+    the typical 4 panels — floored at that height and capped so a pathological stack
+    doesn't produce an enormous image.
+    """
+    n = max(1, n_panels)
+    return (12, min(40, max(8, 2 * n)))
+
+
 def _kwargs_inline(kwargs: dict) -> str:
     return ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
 
@@ -123,6 +151,7 @@ def _render_express(req: RunRequest, product: Product) -> str:
 
 
 def _render_datahub(req: RunRequest, catalog) -> str:
+    figsize = figsize_for_panels(panel_count(req, catalog))
     lines = [
         "import datetime",
         "from geospacelab.visualization.mpl.dashboards import TSDashboard",
@@ -130,7 +159,7 @@ def _render_datahub(req: RunRequest, catalog) -> str:
         f"dt_fr = {_fmt_dt(req.dt_fr)}",
         f"dt_to = {_fmt_dt(req.dt_to)}",
         "",
-        "db = TSDashboard(dt_fr=dt_fr, dt_to=dt_to, figure_config={'figsize': (12, 8)})",
+        f"db = TSDashboard(dt_fr=dt_fr, dt_to=dt_to, figure_config={{'figsize': {figsize}}})",
         "",
     ]
     panels: list[list[str]] = []

@@ -26,6 +26,8 @@ from .codegen import (
     _selected_or_default,
     build_dock_kwargs,
     build_express_kwargs,
+    figsize_for_panels,
+    panel_count,
 )
 from .credentials import credentials_present
 from .errors import credential_message, friendly_error
@@ -71,6 +73,28 @@ def _capture_logs():
         root.setLevel(prev_level)
 
 
+def _effective_credential(product, params: dict) -> str | None:
+    """The credential this request actually needs, given the runtime backend choice.
+
+    Swarm products are cataloged as ``esa_eo`` (their default ESA EO backend), but the
+    ``source`` param lets a request switch backend:
+
+    * HAPI  — a public, token-free service: no credential needed.
+    * VirES — needs a VirES token (the container seeds it from ``VIRES_TOKEN`` in
+      deploy/entrypoint.sh; locally it lives in ``~/.viresclient.ini``).
+    * ESA EO (default) — keeps the product's catalog credential.
+
+    Pairing this with the presence check below means a credential-gated source becomes
+    previewable in docker once its credential is configured (e.g. ``VIRES_TOKEN``).
+    """
+    source = params.get("source")
+    if source == "HAPI":
+        return None
+    if source == "VirES":
+        return "vires"
+    return product.credential
+
+
 def _precheck(req: RunRequest, catalog) -> str | None:
     """Return an error string if the request must not run; otherwise None."""
     span = req.span_hours
@@ -88,13 +112,18 @@ def _precheck(req: RunRequest, catalog) -> str | None:
                 f"Live preview is deferred for {product.label} (needs cartopy and a manual file). "
                 "The generated code is ready to copy."
             )
-        if settings.is_docker() and product.credential is not None:
-            return (
-                f"Live preview is disabled in this deployment for the credential-gated source "
-                f"{product.label}. The generated code is ready to copy."
-            )
-        if not credentials_present(product.credential):
-            return credential_message(product.credential, product.label)
+        # Block a credential-gated source only when its credentials aren't configured.
+        # In docker that means a source becomes previewable once its credential is seeded
+        # (e.g. VIRES_TOKEN via entrypoint.sh), per the "re-enable by passing credentials"
+        # contract; HAPI needs none and is always allowed.
+        credential = _effective_credential(product, spec.params)
+        if not credentials_present(credential):
+            if settings.is_docker():
+                return (
+                    f"Live preview is disabled in this deployment for the credential-gated source "
+                    f"{product.label}. The generated code is ready to copy."
+                )
+            return credential_message(credential, product.label)
         if spec.params.get("add_APEX") and not apex_available():
             return (
                 "“Add APEX magnetic coords” needs the apexpy package, which isn't installed. "
@@ -121,6 +150,13 @@ def build_and_render(req: RunRequest, catalog) -> RunResult:
         import matplotlib
 
         matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        # geospacelab reuses plt.gcf() whenever a figure is already open, which would
+        # ignore our panel-count-scaled figsize and accrete stale axes across previews.
+        # Close leftovers so each run builds a fresh, correctly sized figure. (Runs are
+        # serialised by _RUN_LOCK and the server is single-session, so this is safe.)
+        plt.close("all")
         from .bootstrap import prime_in_memory_config
 
         prime_in_memory_config()
@@ -151,7 +187,8 @@ def _run_express(req: RunRequest, catalog) -> RunResult:
 def _run_datahub(req: RunRequest, catalog) -> RunResult:
     from geospacelab.visualization.mpl.dashboards import TSDashboard
 
-    db = TSDashboard(dt_fr=req.dt_fr, dt_to=req.dt_to, figure_config={"figsize": (12, 8)})
+    figsize = figsize_for_panels(panel_count(req, catalog))
+    db = TSDashboard(dt_fr=req.dt_fr, dt_to=req.dt_to, figure_config={"figsize": figsize})
     panels = []
     summary_rows = []
     for spec in req.datasets:

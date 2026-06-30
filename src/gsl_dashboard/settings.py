@@ -6,8 +6,9 @@ Two runtime modes, selected by ``DASHBOARD_MODE``:
   install. We never touch ``~/.geospacelab/config.toml``; whatever data path and
   credentials are configured there are used as-is.
 * ``docker`` — a restricted runtime. We seed an ephemeral config pointing the data
-  root at a temp directory, and the runner refuses live previews for any source that
-  needs credentials (code is still generated).
+  root at a temp directory, and the runner refuses live previews for any source whose
+  credentials aren't configured (code is still generated). Passing credentials as env
+  vars (e.g. ``VIRES_TOKEN``; see deploy/entrypoint.sh) re-enables that source's preview.
 """
 
 from __future__ import annotations
